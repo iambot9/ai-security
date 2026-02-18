@@ -32,25 +32,31 @@ This lab series takes you from zero to a fully defended AI agent architecture. Y
 
 ### What You Will Learn
 
-```
-                    ┌─────────────────────────────────────────┐
-                    │         SKILLS YOU WILL BUILD            │
-                    ├─────────────────────────────────────────┤
-                    │                                         │
-                    │  Prompt injection (attack + defend)     │
-                    │  SQL injection through AI tools         │
-                    │  SSRF and path traversal via agents     │
-                    │  PII detection and anonymization        │
-                    │  Role-based access control for AI       │
-                    │  System prompt hardening                │
-                    │  Tool call interception                 │
-                    │  Confused deputy mitigation             │
-                    │  Human-in-the-loop controls             │
-                    │  AI Gateway architecture                │
-                    │  Token-based rate limiting              │
-                    │  Azure APIM GenAI Gateway mapping       │
-                    │                                         │
-                    └─────────────────────────────────────────┘
+```mermaid
+mindmap
+  root((AI Security<br/>Skills))
+    **Offensive**
+      Prompt Injection
+      SQL Injection via Tools
+      SSRF & Path Traversal
+      RAG Poisoning
+      Session Hijacking
+    **Defensive**
+      Input & Output Guards
+      PII Anonymization
+      RBAC for AI Tools
+      Prompt Hardening
+      Audit Logging
+    **Agentic**
+      Tool Chain Analysis
+      Confused Deputy Guard
+      Human-in-the-Loop
+      Trust Boundaries
+    **Enterprise**
+      AI Gateway Architecture
+      Token Rate Limiting
+      Cost Governance
+      Azure APIM GenAI
 ```
 
 ---
@@ -70,17 +76,29 @@ This lab series takes you from zero to a fully defended AI agent architecture. Y
 
 ### Learning Progression
 
-```
- LAB 0        LAB 1        LAB 2        LAB 3A       LAB 3B       LAB 4        LAB 5        LAB 6
-┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐
-│SETUP │───▶│BUILD │───▶│BREAK │───▶│DEFEND│───▶│DEFEND│───▶│HARDEN│───▶│GOVERN│───▶│DEPLOY│
-│      │    │      │    │      │    │custom│    │enter-│    │agentic│   │gateway│   │azure │
-│ env  │    │agent │    │attack│    │ code │    │prise │    │  AI  │    │      │    │      │
-└──────┘    └──────┘    └──────┘    └──────┘    └──────┘    └──────┘    └──────┘    └──────┘
-                                        ▲            ▲
-                                        │            │
-                                        └────────────┘
-                                      Defense in Depth
+```mermaid
+graph LR
+    L0["**LAB 0**<br/>Setup<br/>🔧"]
+    L1["**LAB 1**<br/>Build Agent<br/>🏗️"]
+    L2["**LAB 2**<br/>Attack<br/>💥"]
+    L3A["**LAB 3A**<br/>Custom<br/>Defense 🛡️"]
+    L3B["**LAB 3B**<br/>Enterprise<br/>Defense 🏢"]
+    L4["**LAB 4**<br/>Agentic<br/>Security 🤖"]
+    L5["**LAB 5**<br/>AI Gateway<br/>🌐"]
+    L6["**LAB 6**<br/>Azure<br/>Deploy ☁️"]
+
+    L0 --> L1 --> L2 --> L3A --> L3B --> L4 --> L5 --> L6
+
+    L3A -.->|Defense in Depth| L3B
+
+    style L0 fill:#6c757d,stroke:#fff,color:#fff
+    style L1 fill:#0d6efd,stroke:#fff,color:#fff
+    style L2 fill:#dc3545,stroke:#fff,color:#fff
+    style L3A fill:#198754,stroke:#fff,color:#fff
+    style L3B fill:#198754,stroke:#fff,color:#fff
+    style L4 fill:#6f42c1,stroke:#fff,color:#fff
+    style L5 fill:#fd7e14,stroke:#fff,color:#fff
+    style L6 fill:#0dcaf0,stroke:#000,color:#000
 ```
 
 ---
@@ -89,85 +107,139 @@ This lab series takes you from zero to a fully defended AI agent architecture. Y
 
 ### The Vulnerable Agent (LABs 1–2)
 
-```
-                          ┌─────────────────────────────────────┐
-    User Request ────────▶│         FastAPI Application         │
-                          │           (agent/app.py)            │
-                          │                                     │
-                          │  POST /chat ──▶ Mock LLM Engine     │
-                          │  GET  /admin    (agent/llm.py)      │
-                          │  POST /upload         │              │
-                          │  POST /config         ▼              │
-                          │  GET  /sessions  ┌─────────┐        │
-                          │                  │  TOOLS  │        │
-                          │                  ├─────────┤        │
-                          │                  │lookup   │──▶ SQLite DB
-                          │                  │search   │   (customers,
-                          │                  │read_file│    employees,
-                          │                  │exec_sql │    api_keys)
-                          │                  │call_api │──▶ HTTP
-                          │                  │update   │
-                          │                  │emp_info │
-                          │                  └─────────┘
-                          └─────────────────────────────────────┘
+```mermaid
+graph TB
+    User["👤 User Request"]
 
-    Vulnerabilities: SQLi, SSRF, path traversal, prompt injection,
-                     hardcoded secrets, broken auth, IDOR, no RBAC
+    subgraph FastAPI["**FastAPI Application** · agent/app.py"]
+        direction TB
+        Chat["POST /chat"]
+        Admin["GET /admin"]
+        Upload["POST /upload"]
+        Config["POST /config"]
+        Sessions["GET /sessions"]
+
+        LLM["🧠 Mock LLM Engine<br/>agent/llm.py"]
+
+        subgraph Tools["**Agent Tools** · agent/tools.py"]
+            T1["lookup_customer<br/>⚠️ SQLi"]
+            T2["search_customers<br/>⚠️ Mass dump"]
+            T3["read_file<br/>⚠️ Path traversal"]
+            T4["execute_query<br/>⚠️ Arbitrary SQL"]
+            T5["call_api<br/>⚠️ SSRF"]
+            T6["update_customer<br/>⚠️ No auth"]
+            T7["get_employee_info<br/>⚠️ SQLi + BAC"]
+        end
+    end
+
+    DB[("🗄️ SQLite DB<br/>customers · employees<br/>api_keys")]
+    HTTP["🌐 External HTTP"]
+
+    User --> Chat
+    User --> Admin
+    User --> Upload
+    Chat --> LLM --> Tools
+    T1 & T2 & T4 & T6 & T7 --> DB
+    T5 --> HTTP
+    T3 -->|"../../etc/passwd"| DB
+
+    style FastAPI fill:#1a1a2e,stroke:#e94560,color:#fff
+    style Tools fill:#16213e,stroke:#e94560,color:#fff
+    style DB fill:#0f3460,stroke:#e94560,color:#fff
+    style User fill:#e94560,stroke:#fff,color:#fff
+    style LLM fill:#533483,stroke:#e94560,color:#fff
 ```
+
+> **Vulnerabilities:** SQLi, SSRF, path traversal, prompt injection, hardcoded secrets, broken auth, IDOR, no RBAC
 
 ### The Defended Agent (LABs 3A–4)
 
-```
-    User Request
-         │
-         ▼
-    ┌─────────────┐
-    │ Rate Limiter │──▶ 429 if over budget
-    └──────┬──────┘
-           ▼
-    ┌─────────────┐
-    │ Input Guard  │──▶ 400 if injection detected
-    └──────┬──────┘
-           ▼
-    ┌─────────────┐
-    │Prompt Armor  │──▶ Harden system prompt
-    └──────┬──────┘
-           ▼
-    ┌─────────────┐     ┌──────────┐
-    │   Mock LLM  │────▶│   RBAC   │──▶ Block unauthorized tools
-    └──────┬──────┘     └──────────┘
-           ▼                  │
-    ┌─────────────┐           ▼
-    │Tool Intercept│──▶ Validate args, check chains
-    └──────┬──────┘
-           ▼
-    ┌─────────────┐
-    │Output Guard  │──▶ Redact PII, check canary
-    └──────┬──────┘
-           ▼
-    ┌─────────────┐
-    │ Audit Logger │──▶ JSONL for SIEM
-    └──────┬──────┘
-           ▼
-    User Response
+```mermaid
+graph TB
+    User["👤 User Request"]
+    Response["✅ Safe Response"]
+
+    RL["⏱️ **Rate Limiter**<br/>429 if over budget"]
+    IG["🔍 **Input Guard**<br/>Block injection, SQLi, SSRF"]
+    PA["🛡️ **Prompt Armor**<br/>Boundary markers, canary token"]
+    LLM["🧠 **Mock LLM**"]
+    RBAC["🔐 **RBAC**<br/>Role → tool permissions"]
+    TI["🔗 **Tool Interceptor**<br/>Validate args, check chains"]
+    OG["📝 **Output Guard**<br/>Redact PII, check canary"]
+    AL["📊 **Audit Logger**<br/>JSONL → SIEM"]
+
+    User --> RL
+    RL -->|pass| IG
+    RL -->|"⛔ 429"| Block1["Blocked"]
+    IG -->|pass| PA
+    IG -->|"⛔ 400"| Block2["Blocked"]
+    PA --> LLM
+    LLM --> RBAC
+    RBAC -->|permitted| TI
+    RBAC -->|"⛔ 403"| Block3["Blocked"]
+    TI --> OG
+    OG --> AL
+    AL --> Response
+
+    style RL fill:#fd7e14,stroke:#fff,color:#fff
+    style IG fill:#dc3545,stroke:#fff,color:#fff
+    style PA fill:#6f42c1,stroke:#fff,color:#fff
+    style LLM fill:#533483,stroke:#fff,color:#fff
+    style RBAC fill:#0d6efd,stroke:#fff,color:#fff
+    style TI fill:#198754,stroke:#fff,color:#fff
+    style OG fill:#20c997,stroke:#000,color:#000
+    style AL fill:#6c757d,stroke:#fff,color:#fff
+    style User fill:#e94560,stroke:#fff,color:#fff
+    style Response fill:#198754,stroke:#fff,color:#fff
+    style Block1 fill:#dc3545,stroke:#fff,color:#fff
+    style Block2 fill:#dc3545,stroke:#fff,color:#fff
+    style Block3 fill:#dc3545,stroke:#fff,color:#fff
 ```
 
 ### The Full Enterprise Stack (LABs 5–6)
 
-```
-    App A ──┐                                    ┌── Azure OpenAI (GPT-4o)
-    App B ──┼──▶  [ AI GATEWAY :9000 ]  ──▶     ├── Anthropic (Claude)
-    Agent ──┘     │ Auth          │              └── Local Ollama
-                  │ Token Limits  │
-                  │ Content Filter│      ┌──────────────────────┐
-                  │ Cost Tracking │      │  Azure APIM GenAI    │
-                  │ Caching       │ ───▶ │  Gateway (prod)      │
-                  │ Routing       │      │  + AI Content Safety │
-                  │ Observability │      │  + Entra ID          │
-                  └───────────────┘      │  + Key Vault         │
-                   Local (LAB 5)         │  + Monitor           │
-                                         └──────────────────────┘
-                                          Azure (LAB 6)
+```mermaid
+graph LR
+    subgraph Consumers["**Consumers**"]
+        A["App A"]
+        B["App B"]
+        C["🤖 Agent"]
+    end
+
+    subgraph Gateway["**AI Gateway** · :9000<br/>LAB 5"]
+        Auth["🔑 Auth"]
+        TL["⏱️ Token Limits"]
+        CF["🔍 Content Filter"]
+        CT["💰 Cost Tracking"]
+        Cache["📦 Cache"]
+        Route["🔀 Router"]
+        Log["📊 Observability"]
+    end
+
+    subgraph Models["**LLM Backends**"]
+        GPT["Azure OpenAI<br/>GPT-4o"]
+        Claude["Anthropic<br/>Claude"]
+        Local["Ollama<br/>Local"]
+    end
+
+    subgraph Azure["**Azure Production** · LAB 6"]
+        APIM["Azure APIM<br/>GenAI Gateway"]
+        ACS["AI Content Safety"]
+        Entra["Entra ID"]
+        KV["Key Vault"]
+        Monitor["Azure Monitor"]
+    end
+
+    A & B & C --> Auth
+    Auth --> TL --> CF --> CT --> Cache --> Route --> Log
+    Log --> GPT & Claude & Local
+
+    Gateway -.->|"maps to"| Azure
+
+    style Gateway fill:#1a1a2e,stroke:#fd7e14,color:#fff
+    style Models fill:#16213e,stroke:#0d6efd,color:#fff
+    style Azure fill:#0f3460,stroke:#0dcaf0,color:#fff
+    style Consumers fill:#2d2d44,stroke:#6c757d,color:#fff
 ```
 
 ---
